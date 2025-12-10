@@ -6,6 +6,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { JwtModule } from '@nestjs/jwt';
 import { InquiriesModule } from './inquiries/inquiries.module';
+import { CategoriesModule } from './categories/categories.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -17,17 +19,41 @@ import { InquiriesModule } from './inquiries/inquiries.module';
     // TypeORM with env vars via ConfigService
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        type: 'postgres',
-        host: configService.get('DB_HOST'),
-        port: +configService.get('DB_PORT'),
-        username: configService.get('DB_USER'),
-        password: configService.get('DB_PASS'),
-        database: configService.get('DB_NAME'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: false, // Auto-create tables for dev (set false in prod)
-        autoLoadEntities: true,
-      }),
+      useFactory: (configService: ConfigService) => {
+        const dbUrl = configService.get<string>('DATABASE_URL');
+        console.log(
+          'Raw DATABASE_URL from .env:',
+          dbUrl ? 'Loaded (Neon mode)' : 'Undefined - check .env',
+        );
+        if (dbUrl) {
+          // Neon mode: Use full URI for SSL/channel binding
+          console.log('Connecting to Neon database.');
+          return {
+            type: 'postgres',
+            url: dbUrl,
+            entities: [__dirname + '/**/*.entity{.ts,.js}'],
+            synchronize: false, // Use migrations in prod; false prevents schema overwrites
+            autoLoadEntities: true,
+            ssl: true, // Required for Neon security
+            extra: {
+              ssl: { rejectUnauthorized: false }, // Handles cert validation if needed
+            },
+            logging: ['query', 'error'], // Logs joins (e.g., inquiry + requester for call details)
+          };
+        }
+        console.log("Run on localhost postgress DB.");
+        return {
+          type: 'postgres',
+          host: configService.get('DB_HOST'),
+          port: +configService.get('DB_PORT'),
+          username: configService.get('DB_USER'),
+          password: configService.get('DB_PASS'),
+          database: configService.get('DB_NAME'),
+          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          synchronize: false, // Auto-create tables for dev (set false in prod)
+          autoLoadEntities: true,
+        };
+      },
       inject: [ConfigService],
     }),
 
@@ -39,6 +65,10 @@ import { InquiriesModule } from './inquiries/inquiries.module';
     AuthModule,
 
     InquiriesModule,
+
+    CategoriesModule,
+
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

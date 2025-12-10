@@ -32,8 +32,8 @@ export class Attachment {
   // })
   // inquiry?: Inquiry;
 
-  @Column({ name: 'inquiry_id', nullable: true })
-  inquiryId?: number;
+  // @Column({ name: 'inquiry_id', nullable: true })
+  // inquiryId?: number;
 
   // @ManyToOne(() => Response, (response) => response.attachments, {
   //   onDelete: 'CASCADE',
@@ -41,6 +41,6 @@ export class Attachment {
   // })
   // response?: Response;
 
-  @Column({ name: 'response_id', nullable: true })
-  responseId?: number;
+  // @Column({ name: 'response_id', nullable: true })
+  // responseId?: number;
 }
