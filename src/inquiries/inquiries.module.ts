@@ -7,12 +7,14 @@ import { Requester } from 'src/entities/requester.entity';
 import { Inquiry } from 'src/entities/inquiry.entity';
 import { Response } from 'src/entities/response.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { EmailModule } from 'src/email/email.module';
 
 @Module({
   providers: [InquiriesService],
   controllers: [InquiriesController],
   imports: [
     TypeOrmModule.forFeature([Inquiry, Requester, Category, Response, User]),
+    EmailModule,
   ],
   exports: [InquiriesService],
 })

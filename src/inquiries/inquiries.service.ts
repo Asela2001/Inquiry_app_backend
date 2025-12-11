@@ -13,6 +13,7 @@ import { InquiryStatus } from 'src/entities/inquiry.entity';
 import { RequesterType } from 'src/entities/requester.entity';
 import { UserRole } from 'src/entities/user.entity';
 import { plainToInstance } from 'class-transformer';
+import { EmailService } from 'src/email/email.service';
 
 @Injectable()
 export class InquiriesService {
@@ -22,6 +23,7 @@ export class InquiriesService {
     @InjectRepository(Category) private categoryRepo: Repository<Category>,
     @InjectRepository(Response) private responseRepo: Repository<Response>,
     @InjectRepository(User) private userRepo: Repository<User>,
+    private emailService: EmailService, // For notifications
   ) {}
 
   async create(
@@ -85,6 +87,20 @@ export class InquiriesService {
     });
     await this.responseRepo.save(initialResponse);
 
+    // Send confirmation email if rEmail exists
+    if (requester.rEmail) {
+      try {
+        await this.emailService.sendInquiryConfirmation(
+          requester.rEmail,
+          inquiry.inquiryId,
+          inquiry.subject,
+          inquiry.inquiryText.substring(0, 100) + '...', // Brief summary
+        );
+      } catch (emailError) {
+        console.error('Email confirmation failed:', emailError); // Log, don't block
+      }
+    } // Else, log "No email—use phoneNo for SMS future"
+
     return inquiry;
   }
 
@@ -112,10 +128,12 @@ export class InquiriesService {
         inquiryId: id,
         responses: { user: { userId: currentUser.userId } },
       }, // Officer only own
-      relations: ['responses'],
+      relations: ['responses', 'requester'], // Load requester for email
     });
     if (!inquiry)
       throw new ForbiddenException('Inquiry not found or access denied');
+
+    const previousStatus = inquiry.status; // Track for change
 
     // Update fields
     Object.assign(inquiry, updateDto);
@@ -131,6 +149,24 @@ export class InquiriesService {
         user: currentUser,
       });
       await this.responseRepo.save(response);
+    }
+
+    // Send completion email if status changed to resolved/closed
+    if (
+      (updateDto.status === InquiryStatus.RESOLVED ||
+        updateDto.status === InquiryStatus.CLOSED) &&
+      inquiry.requester.rEmail &&
+      inquiry.status !== previousStatus
+    ) {
+      try {
+        await this.emailService.sendInquiryCompletion(
+          inquiry.requester.rEmail,
+          id,
+          inquiry.subject,
+        );
+      } catch (emailError) {
+        console.error('Email completion failed:', emailError); // Log, don't block
+      }
     }
 
     return inquiry;
@@ -149,37 +185,24 @@ export class InquiriesService {
   }
 
   async getDashboard(currentUser: User): Promise<any> {
-    console.log(
-      'Dashboard role:',
-      currentUser.role,
-      'userId:',
-      currentUser.userId,
-    ); // Debug: Log role/userId (remove later)
-
     let query = this.inquiryRepo.createQueryBuilder('i');
 
     // Officer: Subquery EXISTS for ownership (boolean, no dupes)
     if (currentUser.role === UserRole.OFFICER) {
-      // Enum-safe (handles DB varchar)
       query = query.where(
         'EXISTS (SELECT 1 FROM response res JOIN "user" u ON res.user_id = u.user_id WHERE res.inquiry_id = i.inquiry_id AND u.user_id = :userId)',
         { userId: currentUser.userId },
       );
-      console.log('Applied officer filter for userId:', currentUser.userId); // Debug
     } else if (currentUser.role === UserRole.ADMIN) {
       // Explicit admin branch—no filter
-      // Global: No where/subquery
-      console.log('Applied admin global—no filter'); // Debug
     } else {
-      throw new ForbiddenException('Invalid role for dashboard access'); // Edge: Unknown role
+      throw new ForbiddenException('Invalid role for dashboard access');
     }
 
     const stats = await query
       .select('i.status, COUNT(DISTINCT i.inquiry_id) AS count')
       .groupBy('i.status')
       .getRawMany();
-
-    console.log('Raw stats:', stats); // Debug: [{ status: 'pending', count: 4 }, ...]
 
     const result: any = { pending: 0, in_progress: 0, resolved: 0, closed: 0 };
     stats.forEach((row: any) => {

@@ -8,6 +8,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { InquiriesModule } from './inquiries/inquiries.module';
 import { CategoriesModule } from './categories/categories.module';
 import { UsersModule } from './users/users.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -63,12 +64,10 @@ import { UsersModule } from './users/users.module';
     }),
 
     AuthModule,
-
     InquiriesModule,
-
     CategoriesModule,
-
     UsersModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [AppService],
