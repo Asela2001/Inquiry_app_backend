@@ -54,6 +54,22 @@ export class UsersService {
     };
   }
 
+  async getProfile(currentUser: User): Promise<any> {
+    const where = { userId: currentUser.userId }; // Always own
+    const user = await this.userRepo.findOne({ where });
+    if (!user) throw new ForbiddenException('Profile not found');
+
+    // Sanitize
+    return {
+      userId: user.userId,
+      uFirstName: user.uFirstName,
+      uLastName: user.uLastName,
+      department: user.department,
+      uEmail: user.uEmail,
+      role: user.role,
+    };
+  }
+
   async create(createDto: CreateUserDto, currentUser: User): Promise<any> {
     if (currentUser.role !== UserRole.ADMIN) {
       throw new ForbiddenException('Only admins can create users');

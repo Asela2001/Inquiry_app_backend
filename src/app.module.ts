@@ -9,6 +9,8 @@ import { InquiriesModule } from './inquiries/inquiries.module';
 import { CategoriesModule } from './categories/categories.module';
 import { UsersModule } from './users/users.module';
 import { EmailModule } from './email/email.module';
+import { RanksModule } from './ranks/ranks.module';
+import { EstablishmentsModule } from './establishments/establishments.module';
 
 @Module({
   imports: [
@@ -68,6 +70,8 @@ import { EmailModule } from './email/email.module';
     CategoriesModule,
     UsersModule,
     EmailModule,
+    RanksModule,
+    EstablishmentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

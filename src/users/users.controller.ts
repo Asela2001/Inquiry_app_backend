@@ -8,6 +8,7 @@ import {
   Param,
   UseGuards,
   Req,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -34,9 +35,20 @@ export class UsersController {
     return this.usersService.findAll(req.user);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string, @Req() req) {
-    return this.usersService.findOne(+id, req.user);
+  // @Get(':id')
+  // findOne(@Param('id') id: string, @Req() req) {
+  //   return this.usersService.findOne(+id, req.user);
+  // }
+
+  @Get('profile')
+  getProfile(@Req() req) {
+    return this.usersService.getProfile(req.user);
+  }
+
+  @Get(':id') // Detail (admin any, officer own)—Pipe validates id as int
+  findOne(@Param('id', ParseIntPipe) id: number, @Req() req) {
+    // ParseIntPipe auto-converts/validates
+    return this.usersService.findOne(id, req.user);
   }
 
   @Put(':id')
