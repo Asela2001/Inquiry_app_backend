@@ -1,5 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { Inquiry } from './inquiry.entity';
+import { ManyToOne, JoinColumn } from 'typeorm';
+import { Rank } from './rank.entity';
+import { Establishment } from './establishment.entity';
 
 export enum RequesterType {
   ARMY = 'army',
@@ -37,11 +40,19 @@ export class Requester {
   @Column({ name: 'phone_no', length: 20 })
   phoneNo: string; // Key for call verification
 
-  @Column({ name: 'rank', length: 50 })
-  rank: string; // e.g., 'Captain' or 'N/A' for civil
+  @ManyToOne(() => Rank, { nullable: true })
+  @JoinColumn({ name: 'rank_id' })
+  rank: Rank;
 
-  @Column({ name: 'estb', length: 100 })
-  estb: string; // Establishment/unit or 'N/A' for civil
+  @ManyToOne(() => Establishment, { nullable: true })
+  @JoinColumn({ name: 'estb_id' })
+  establishment: Establishment;
+
+  // @Column({ name: 'rank', length: 50 })
+  // rank: string; // e.g., 'Captain' or 'N/A' for civil
+
+  // @Column({ name: 'estb', length: 100 })
+  // estb: string; // Establishment/unit or 'N/A' for civil
 
   // Relation: One requester has many inquiries
   @OneToMany(() => Inquiry, (inquiry) => inquiry.requester)

@@ -1,4 +1,11 @@
-import { IsString, IsNotEmpty, IsEnum, IsNumber, IsOptional, ValidateNested } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 import { InquiryStatus } from '../../entities/inquiry.entity';
 import { RequesterType } from '../../entities/requester.entity';
@@ -31,13 +38,21 @@ class NewRequesterDto {
   @IsString()
   phoneNo: string;
 
-  @IsNotEmpty()
-  @IsString()
-  rank: string; // 'Captain' or 'N/A'
+  @IsOptional()
+  @IsNumber(
+    {},
+    { message: 'Valid rank ID required for army (or N/A ID for civil)' },
+  )
+  rankId?: number; // FK to rank.rank_id (required for army)
 
-  @IsNotEmpty()
-  @IsString()
-  estb: string; // Unit or 'N/A'
+  @IsOptional()
+  @IsNumber(
+    {},
+    {
+      message: 'Valid establishment ID required for army (or N/A ID for civil)',
+    },
+  )
+  estbId?: number; // FK to establishment.estb_id (required for army)
 }
 
 export class CreateInquiryDto {
@@ -49,11 +64,16 @@ export class CreateInquiryDto {
   @IsString()
   inquiryText: string;
 
-  @IsEnum(InquiryStatus, { message: 'Status must be pending|in_progress|resolved|closed' })
+  @IsEnum(InquiryStatus, {
+    message: 'Status must be pending|in_progress|resolved|closed',
+  })
   @IsOptional() // Defaults to 'pending'
   status?: InquiryStatus;
 
-  @IsNumber({}, { message: 'Valid category ID required (e.g., 1 for Disciplinary)' })
+  @IsNumber(
+    {},
+    { message: 'Valid category ID required (e.g., 1 for Disciplinary)' },
+  )
   @IsNotEmpty()
   categoryId: number;
 

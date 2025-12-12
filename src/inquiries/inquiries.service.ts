@@ -14,6 +14,8 @@ import { RequesterType } from 'src/entities/requester.entity';
 import { UserRole } from 'src/entities/user.entity';
 import { plainToInstance } from 'class-transformer';
 import { EmailService } from 'src/email/email.service';
+import { Rank } from 'src/entities/rank.entity';
+import { Establishment } from 'src/entities/establishment.entity';
 
 @Injectable()
 export class InquiriesService {
@@ -23,6 +25,9 @@ export class InquiriesService {
     @InjectRepository(Category) private categoryRepo: Repository<Category>,
     @InjectRepository(Response) private responseRepo: Repository<Response>,
     @InjectRepository(User) private userRepo: Repository<User>,
+    @InjectRepository(Rank) private rankRepo: Repository<Rank>, // New repo for FK
+    @InjectRepository(Establishment)
+    private estbRepo: Repository<Establishment>,
     private emailService: EmailService, // For notifications
   ) {}
 
@@ -51,18 +56,46 @@ export class InquiriesService {
       // Validate army/civil logic (digital check for manual errors)
       if (
         newReq.requesterType === RequesterType.ARMY &&
-        (!newReq.officerRegNo || newReq.nic)
+        (!newReq.officerRegNo || newReq.nic || !newReq.rankId || !newReq.estbId)
       ) {
         throw new BadRequestException(
-          'Army: Require officerRegNo only (no NIC)',
+          'Army: Require officerRegNo, rankId, estbId only (no NIC)',
         );
       } else if (
         newReq.requesterType === RequesterType.CIVIL &&
         (newReq.officerRegNo || !newReq.nic)
       ) {
-        throw new BadRequestException('Civil: Require NIC only (no reg no)');
+        throw new BadRequestException(
+          'Civil: Require NIC only (no reg no; rankId/estbId optional)',
+        );
       }
+
+      // Load Rank/Establishment if IDs provided (for relation set)
+      let rank: Rank | null = null;
+      if (newReq.rankId) {
+        rank = await this.rankRepo.findOne({
+          where: { rank_id: newReq.rankId },
+        });
+        if (!rank) throw new BadRequestException('Invalid rank ID');
+      }
+      let establishment: Establishment | null = null;
+      if (newReq.estbId) {
+        establishment = await this.estbRepo.findOne({
+          where: { estb_id: newReq.estbId },
+        });
+        if (!establishment)
+          throw new BadRequestException('Invalid establishment ID');
+      }
+
+      // Create base requester
       requester = this.requesterRepo.create(newReq);
+      // Set relations after create (avoids DeepPartial error)
+      if (rank) {
+        requester.rank = rank;
+      }
+      if (establishment) {
+        requester.establishment = establishment;
+      }
       await this.requesterRepo.save(requester);
     } else {
       throw new BadRequestException(
