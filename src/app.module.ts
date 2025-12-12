@@ -11,12 +11,21 @@ import { UsersModule } from './users/users.module';
 import { EmailModule } from './email/email.module';
 import { RanksModule } from './ranks/ranks.module';
 import { EstablishmentsModule } from './establishments/establishments.module';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true, // Makes ConfigService available everywhere
       envFilePath: '.env', // Points to your .env
+    }),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 60,  // 60s window
+          limit: 5,  // 5 requests/min per IP
+        },
+      ],
     }),
 
     // TypeORM with env vars via ConfigService

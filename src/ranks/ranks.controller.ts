@@ -18,12 +18,12 @@ import { Roles } from 'src/common/guards/decorators/roles.decorator';
 import { UserRole } from 'src/entities/user.entity';
 
 @Controller('ranks')
-@UseGuards(JwtAuthGuard) // All: Auth required
+//@UseGuards(JwtAuthGuard) // All: Auth required
 export class RanksController {
   constructor(private readonly ranksService: RanksService) {}
 
   @Post() // Add new
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   create(@Body() createDto: CreateRankDto, @Req() req) {
     return this.ranksService.create(createDto, req.user);
@@ -35,14 +35,14 @@ export class RanksController {
   }
 
   @Get(':id') // Detail
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN) // Admin only for detail (requesters load)
   findOne(@Param('id') id: string) {
     return this.ranksService.findOne(+id);
   }
 
   @Put(':id') // Update
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   update(
     @Param('id') id: string,
@@ -53,7 +53,7 @@ export class RanksController {
   }
 
   @Delete(':id') // Delete
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   remove(@Param('id') id: string, @Req() req) {
     return this.ranksService.remove(+id, req.user);

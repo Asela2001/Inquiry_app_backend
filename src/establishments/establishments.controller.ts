@@ -18,12 +18,12 @@ import { Roles } from 'src/common/guards/decorators/roles.decorator';
 import { UserRole } from 'src/entities/user.entity';
 
 @Controller('establishments')
-@UseGuards(JwtAuthGuard)
+//@UseGuards(JwtAuthGuard)
 export class EstablishmentsController {
   constructor(private readonly establishmentsService: EstablishmentsService) {}
 
   @Post()
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   create(@Body() createDto: CreateEstablishmentDto, @Req() req) {
     return this.establishmentsService.create(createDto, req.user);
@@ -35,14 +35,14 @@ export class EstablishmentsController {
   }
 
   @Get(':id')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   findOne(@Param('id') id: string) {
     return this.establishmentsService.findOne(+id);
   }
 
   @Put(':id')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   update(
     @Param('id') id: string,
@@ -53,7 +53,7 @@ export class EstablishmentsController {
   }
 
   @Delete(':id')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   remove(@Param('id') id: string, @Req() req) {
     return this.establishmentsService.remove(+id, req.user);

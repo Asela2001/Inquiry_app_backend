@@ -5,6 +5,7 @@ import {
   IsNumber,
   IsOptional,
   ValidateNested,
+  IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { InquiryStatus } from '../../entities/inquiry.entity';
@@ -87,4 +88,8 @@ export class CreateInquiryDto {
   @ValidateNested()
   @Type(() => NewRequesterDto)
   newRequester?: NewRequesterDto;
+
+  @IsOptional()
+  @IsBoolean({ message: 'isPublic must be boolean' })
+  isPublic?: boolean;
 }

@@ -13,6 +13,7 @@ import {
 } from '@nestjs/common';
 import { CreateInquiryDto } from './dto/create-inquiry.dto';
 import { UpdateInquiryDto } from './dto/update-inquiry.dto';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { Roles } from 'src/common/guards/decorators/roles.decorator';
 import { UserRole } from 'src/entities/user.entity';
 import { RolesGuard } from 'src/common/guards/roles.guard';
@@ -48,8 +49,14 @@ export class InquiriesController {
     return this.inquiriesService.remove(+id, req.user);
   }
 
-  @Get('dashboard')  // e.g., /inquiries/dashboard
+  @Get('dashboard') // e.g., /inquiries/dashboard
   getDashboard(@Req() req) {
-    return this.inquiriesService.getDashboard(req.user);  // Returns stats object
+    return this.inquiriesService.getDashboard(req.user); // Returns stats object
+  }
+
+  @Post('public')
+  @UseGuards(ThrottlerGuard) // Rate-limit only
+  createPublic(@Body() createDto: CreateInquiryDto) {
+    return this.inquiriesService.createPublic(createDto);
   }
 }

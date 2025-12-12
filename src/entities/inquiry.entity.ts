@@ -78,4 +78,7 @@ export class Inquiry {
 
   @OneToMany(() => Attachment, (attachment) => attachment.inquiry)
   attachments: Attachment[];
+
+  @Column({ name: 'is_public', default: false, type: 'boolean' }) // New: true for public submissions
+  isPublic: boolean;
 }

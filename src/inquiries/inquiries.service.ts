@@ -138,10 +138,14 @@ export class InquiriesService {
   }
 
   async findAll(currentUser: User): Promise<Inquiry[]> {
-    const where: any = {};
+    //const where: any = {};
+    let where: any = {};
     if (currentUser.role === UserRole.OFFICER) {
       // Officer: Only own (via responses)
-      where.responses = { user: { userId: currentUser.userId } };
+      where = [
+        { responses: { user: { userId: currentUser.userId } } }, // Own assigned
+        { isPublic: true }, // All public (pending/unassigned)
+      ];
     } // Admin: All (no where)
 
     const inquiries = await this.inquiryRepo.find({
@@ -156,12 +160,18 @@ export class InquiriesService {
     updateDto: UpdateInquiryDto,
     currentUser: User,
   ): Promise<Inquiry> {
+    let where: any = { inquiryId: id };
+    if (currentUser.role === UserRole.OFFICER) {
+      // Officer: Own OR public (OR filter)
+      where = [
+        { inquiryId: id, responses: { user: { userId: currentUser.userId } } },
+        { inquiryId: id, isPublic: true },
+      ];
+    } // Admin: Any (no extra)
+
     const inquiry = await this.inquiryRepo.findOne({
-      where: {
-        inquiryId: id,
-        responses: { user: { userId: currentUser.userId } },
-      }, // Officer only own
-      relations: ['responses', 'requester'], // Load requester for email
+      where,
+      relations: ['responses', 'requester'], // Load for email
     });
     if (!inquiry)
       throw new ForbiddenException('Inquiry not found or access denied');
@@ -206,14 +216,19 @@ export class InquiriesService {
   }
 
   async remove(id: number, currentUser: User): Promise<void> {
-    const inquiry = await this.inquiryRepo.findOne({
-      where: {
-        inquiryId: id,
-        responses: { user: { userId: currentUser.userId } },
-      },
-    });
+    let where: any = { inquiryId: id };
+    if (currentUser.role === UserRole.OFFICER) {
+      // Officer: Own OR public (OR filter)
+      where = [
+        { inquiryId: id, responses: { user: { userId: currentUser.userId } } },
+        { inquiryId: id, isPublic: true },
+      ];
+    } // Admin: Any (no extra)
+
+    const inquiry = await this.inquiryRepo.findOne({ where });
     if (!inquiry)
       throw new ForbiddenException('Inquiry not found or access denied');
+
     await this.inquiryRepo.remove(inquiry); // Cascades to responses/attachments
   }
 
@@ -248,5 +263,90 @@ export class InquiriesService {
     );
 
     return result;
+  }
+
+  async createPublic(createDto: CreateInquiryDto): Promise<Inquiry> {
+    // Reuse validation/create logic (no currentUser)
+    const category = await this.categoryRepo.findOne({
+      where: { categoryId: createDto.categoryId },
+    });
+    if (!category) throw new BadRequestException('Invalid category ID');
+
+    let requester: Requester;
+    if (createDto.requesterId) {
+      const found = await this.requesterRepo.findOne({
+        where: { requesterId: createDto.requesterId },
+      });
+      if (!found) throw new BadRequestException('Invalid requester ID');
+      requester = found;
+    } else if (createDto.newRequester) {
+      const newReq = createDto.newRequester;
+      // Same validation (army/civil FKs rankId/estbId)
+      if (
+        newReq.requesterType === RequesterType.ARMY &&
+        (!newReq.officerRegNo || newReq.nic || !newReq.rankId || !newReq.estbId)
+      ) {
+        throw new BadRequestException(
+          'Army: Require officerRegNo, rankId, estbId only (no NIC)',
+        );
+      } else if (
+        newReq.requesterType === RequesterType.CIVIL &&
+        (newReq.officerRegNo || !newReq.nic)
+      ) {
+        throw new BadRequestException(
+          'Civil: Require NIC only (no reg no; rankId/estbId optional)',
+        );
+      }
+
+      // Load FKs (same as before)
+      let rank: Rank | null = null;
+      if (newReq.rankId) {
+        rank = await this.rankRepo.findOne({
+          where: { rank_id: newReq.rankId },
+        });
+        if (!rank) throw new BadRequestException('Invalid rank ID');
+      }
+      let establishment: Establishment | null = null;
+      if (newReq.estbId) {
+        establishment = await this.estbRepo.findOne({
+          where: { estb_id: newReq.estbId },
+        });
+        if (!establishment)
+          throw new BadRequestException('Invalid establishment ID');
+      }
+
+      requester = this.requesterRepo.create(newReq);
+      if (rank) requester.rank = rank;
+      if (establishment) requester.establishment = establishment;
+      await this.requesterRepo.save(requester);
+    } else {
+      throw new BadRequestException('Provide requester ID or new details');
+    }
+
+    // Create inquiry (auto 'pending', no response assignment—admin/officer assigns later)
+    const inquiry = this.inquiryRepo.create({
+      ...createDto,
+      status: InquiryStatus.PENDING, // Force pending for public
+      isPublic: true,
+      category,
+      requester,
+    });
+    await this.inquiryRepo.save(inquiry);
+
+    // Send confirmation email (no assignment response)
+    if (requester.rEmail) {
+      try {
+        await this.emailService.sendInquiryConfirmation(
+          requester.rEmail,
+          inquiry.inquiryId,
+          inquiry.subject,
+          inquiry.inquiryText.substring(0, 100) + '...',
+        );
+      } catch (emailError) {
+        console.error('Email confirmation failed:', emailError);
+      }
+    }
+
+    return inquiry;
   }
 }

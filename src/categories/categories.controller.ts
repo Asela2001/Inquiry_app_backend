@@ -18,12 +18,12 @@ import { Roles } from 'src/common/guards/decorators/roles.decorator';
 import { UserRole } from '../entities/user.entity';
 
 @Controller('categories')
-@UseGuards(JwtAuthGuard) // All: Auth required (officer/admin token)
+//@UseGuards(JwtAuthGuard) // All: Auth required (officer/admin token)
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
   @Post() // Add new
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   create(@Body() createDto: CreateCategoryDto, @Req() req) {
     return this.categoriesService.create(createDto, req.user);
@@ -40,7 +40,7 @@ export class CategoriesController {
   }
 
   @Put(':id') // Update
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   update(
     @Param('id') id: string,
@@ -51,7 +51,7 @@ export class CategoriesController {
   }
 
   @Delete(':id') // Delete
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   remove(@Param('id') id: string, @Req() req) {
     return this.categoriesService.remove(+id, req.user);
