@@ -265,6 +265,42 @@ export class InquiriesService {
     return result;
   }
 
+  async getCategoryDistribution(): Promise<
+    { category: string; count: number }[]
+  > {
+    const result = await this.inquiryRepo
+      .createQueryBuilder('i')
+      .leftJoin('i.category', 'c')
+      .select('c.category_name', 'category')
+      .addSelect('COUNT(i.inquiry_id)', 'count')
+      .groupBy('c.category_name')
+      .getRawMany();
+    return result.map((r) => ({
+      category: r.category,
+      count: parseInt(r.count, 10),
+    }));
+  }
+
+  async getMonthlyInquiryCounts(
+    year: number,
+  ): Promise<{ month: number; count: number }[]> {
+    const result = await this.inquiryRepo
+      .createQueryBuilder('i')
+      .select('EXTRACT(MONTH FROM i.i_created_at)', 'month')
+      .addSelect('COUNT(i.inquiry_id)', 'count')
+      .where('EXTRACT(YEAR FROM i.i_created_at) = :year', { year })
+      .groupBy('month')
+      .orderBy('month')
+      .getRawMany();
+    // Fill missing months with 0
+    const months: { month: number; count: number }[] = [];
+    for (let m = 1; m <= 12; m++) {
+      const found = result.find((r) => parseInt(r.month, 10) === m);
+      months.push({ month: m, count: found ? parseInt(found.count, 10) : 0 });
+    }
+    return months;
+  }
+
   async createPublic(createDto: CreateInquiryDto): Promise<Inquiry> {
     // Reuse validation/create logic (no currentUser)
     const category = await this.categoryRepo.findOne({

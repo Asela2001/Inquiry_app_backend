@@ -54,6 +54,16 @@ export class InquiriesController {
     return this.inquiriesService.getDashboard(req.user); // Returns stats object
   }
 
+  @Get('charts/categories')
+  getCategoryDistribution() {
+    return this.inquiriesService.getCategoryDistribution();
+  }
+
+  @Get('charts/yearly/:year')
+  getYearlyCounts(@Param('year') year: string) {
+    return this.inquiriesService.getMonthlyInquiryCounts(+year);
+  }
+
   @Post('public')
   @UseGuards(ThrottlerGuard) // Rate-limit only
   createPublic(@Body() createDto: CreateInquiryDto) {
