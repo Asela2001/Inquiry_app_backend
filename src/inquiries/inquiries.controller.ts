@@ -69,4 +69,10 @@ export class InquiriesController {
   createPublic(@Body() createDto: CreateInquiryDto) {
     return this.inquiriesService.createPublic(createDto);
   }
+
+  @Get(':id/responses')
+  @UseGuards(JwtAuthGuard) // Protected
+  findResponsesByInquiry(@Param('id') id: string, @Req() req) {
+    return this.inquiriesService.findResponsesByInquiry(+id, req.user); // New service method
+  }
 }

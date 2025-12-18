@@ -12,6 +12,7 @@ import { EmailModule } from './email/email.module';
 import { RanksModule } from './ranks/ranks.module';
 import { EstablishmentsModule } from './establishments/establishments.module';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { AttachmentsModule } from './attachments/attachments.module';
 
 @Module({
   imports: [
@@ -81,6 +82,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
     EmailModule,
     RanksModule,
     EstablishmentsModule,
+    AttachmentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

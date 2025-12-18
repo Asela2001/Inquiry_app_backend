@@ -17,6 +17,7 @@ import { EmailService } from 'src/email/email.service';
 import { Rank } from 'src/entities/rank.entity';
 import { Establishment } from 'src/entities/establishment.entity';
 
+
 @Injectable()
 export class InquiriesService {
   constructor(
@@ -150,7 +151,13 @@ export class InquiriesService {
 
     const inquiries = await this.inquiryRepo.find({
       where,
-      relations: ['requester', 'category', 'responses', 'responses.user'],
+      relations: [
+        'requester',
+        'category',
+        'responses',
+        'responses.user',
+        'attachments',
+      ],
     });
     return plainToInstance(Inquiry, inquiries); // Safe transform
   }
@@ -384,5 +391,18 @@ export class InquiriesService {
     }
 
     return inquiry;
+  }
+
+  async findResponsesByInquiry(
+    id: number,
+    currentUser: User,
+  ): Promise<Response[]> {
+    // Reuse ownership logic (own or public)
+    const inquiry = await this.inquiryRepo.findOne({
+      where: { inquiryId: id }, // Add OR for officer if public
+      relations: ['responses', 'responses.user'],
+    });
+    if (!inquiry) throw new ForbiddenException('Inquiry not found');
+    return inquiry.responses;
   }
 }
