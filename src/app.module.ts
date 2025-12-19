@@ -13,6 +13,7 @@ import { RanksModule } from './ranks/ranks.module';
 import { EstablishmentsModule } from './establishments/establishments.module';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AttachmentsModule } from './attachments/attachments.module';
+import { RequestersModule } from './requesters/requesters.module';
 
 @Module({
   imports: [
@@ -83,6 +84,7 @@ import { AttachmentsModule } from './attachments/attachments.module';
     RanksModule,
     EstablishmentsModule,
     AttachmentsModule,
+    RequestersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
