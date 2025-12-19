@@ -6,10 +6,15 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.enableCors();
+  app.enableCors({
+    origin: '*',
+    credentials: true,
+  });
   await app.listen(process.env.PORT ?? 3000);
   // try {
   //   console.log('Starting NestJS with Neon...'); // Debug entry
   //   const app = await NestFactory.create(AppModule);
+
   //   await app.listen(3000);
   //   console.log('Server listening on http://localhost:3000'); // Confirms bind
   // } catch (error) {

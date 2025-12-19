@@ -10,6 +10,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { EmailModule } from 'src/email/email.module';
 import { Establishment } from 'src/entities/establishment.entity';
 import { Rank } from 'src/entities/rank.entity';
+import { Attachment } from 'src/entities/attachment.entity';
 
 @Module({
   providers: [InquiriesService],
@@ -23,6 +24,7 @@ import { Rank } from 'src/entities/rank.entity';
       User,
       Rank,
       Establishment,
+      Attachment,
     ]),
     EmailModule,
   ],
