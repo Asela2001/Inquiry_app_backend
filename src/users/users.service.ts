@@ -6,6 +6,8 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { ForbiddenException } from '@nestjs/common';
 import { AuthService } from '../auth/auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { BadRequestException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -140,5 +142,41 @@ export class UsersService {
     }
 
     await this.userRepo.remove(user);
+  }
+
+  async changePassword(
+    userId: number,
+    changeDto: ChangePasswordDto,
+    currentUser: User,
+  ): Promise<{ message: string }> {
+    if (currentUser.userId !== userId) {
+      throw new ForbiddenException('Can only change your own password');
+    }
+
+    const user = await this.userRepo.findOne({ where: { userId } });
+    if (!user) throw new BadRequestException('User not found');
+
+    // Verify current password
+    const isCurrentValid = await bcrypt.compare(
+      changeDto.currentPassword,
+      user.password,
+    );
+    if (!isCurrentValid) {
+      throw new BadRequestException('Current password incorrect');
+    }
+
+    // Check new passwords match
+    if (changeDto.newPassword !== changeDto.confirmNewPassword) {
+      throw new BadRequestException('New passwords do not match');
+    }
+
+    // Hash new password
+    const hashedNewPassword = await bcrypt.hash(changeDto.newPassword, 10);
+
+    // Update
+    user.password = hashedNewPassword;
+    await this.userRepo.save(user);
+
+    return { message: 'Password changed successfully' };
   }
 }
