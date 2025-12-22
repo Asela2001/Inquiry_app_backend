@@ -442,4 +442,81 @@ export class InquiriesService {
 
     return responses; // Array with full details
   }
+
+  async findOne(id: number, currentUser: User): Promise<Inquiry> {
+    const numericId = Number(id);
+    if (!numericId || isNaN(numericId)) {
+      throw new BadRequestException('Invalid inquiry ID');
+    }
+
+    let where: any = { inquiryId: numericId };
+    if (currentUser.role === UserRole.OFFICER) {
+      where = [
+        {
+          inquiryId: numericId,
+          responses: { user: { userId: currentUser.userId } },
+        },
+        { inquiryId: numericId, isPublic: true },
+      ];
+    }
+    const inquiry = await this.inquiryRepo.findOne({
+      where,
+      relations: [
+        'requester',
+        'category',
+        'attachments',
+        'responses',
+        'responses.user',
+      ],
+    });
+    if (!inquiry)
+      throw new NotFoundException('Inquiry not found or access denied');
+    return inquiry;
+  }
+
+  // Post response to an inquiry
+  async createResponse(
+    inquiryId: number,
+    responseText: string,
+    files: Express.Multer.File[],
+    currentUser: User,
+  ) {
+    const inquiry = await this.inquiryRepo.findOne({
+      where: { inquiryId },
+      relations: ['responses', 'attachments'],
+    });
+    if (!inquiry) throw new NotFoundException('Inquiry not found');
+    inquiry.status = InquiryStatus.RESOLVED;
+    await this.inquiryRepo.save(inquiry);
+    const response = this.responseRepo.create({
+      responseText,
+      inquiry,
+      user: currentUser,
+    });
+    await this.responseRepo.save(response);
+    if (files && files.length > 0) {
+      for (const file of files) {
+        const attachment = this.attachmentRepo.create({
+          filePath: `/uploads/${file.filename}`,
+          response, // Link attachment to response
+        });
+        await this.attachmentRepo.save(attachment);
+      }
+    }
+    return response;
+  }
+
+  // Inquiry status update to in progress
+  async markInProgress(id: number, currentUser: User): Promise<Inquiry> {
+    const inquiry = await this.inquiryRepo.findOne({
+      where: { inquiryId: id },
+      relations: ['responses'],
+    });
+    if (!inquiry) throw new NotFoundException('Inquiry not found');
+    if (inquiry.status === InquiryStatus.PENDING) {
+      inquiry.status = InquiryStatus.IN_PROGRESS;
+      await this.inquiryRepo.save(inquiry);
+    }
+    return inquiry;
+  }
 }

@@ -116,4 +116,52 @@ export class InquiriesController {
   findResponsesByUser(@Param('id') id: string, @Req() req) {
     return this.inquiriesService.findResponsesByUser(+id, req.user);
   }
+
+  // Get inquiry by ID
+  @Get(':id')
+  @UseGuards(JwtAuthGuard)
+  findOne(@Param('id') id: string, @Req() req) {
+    return this.inquiriesService.findOne(+id, req.user);
+  }
+
+  // Post response to an inquiry
+  @Post(':id/responses')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    FilesInterceptor('attachments', 10, {
+      storage: diskStorage({
+        destination: './uploads',
+        filename: (req, file, cb) => {
+          const uniqueName =
+            'resp_' +
+            Date.now() +
+            '_' +
+            Math.round(Math.random() * 1e9) +
+            extname(file.originalname);
+          cb(null, uniqueName);
+        },
+      }),
+    }),
+  )
+  async createResponse(
+    @Param('id') id: string,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Body('data') data: string,
+    @Req() req,
+  ) {
+    const { responseText } = JSON.parse(data);
+    return this.inquiriesService.createResponse(
+      +id,
+      responseText,
+      files,
+      req.user,
+    );
+  }
+
+  // Inquiry status update to in progress
+  @Put(':id/start-response')
+  @UseGuards(JwtAuthGuard)
+  async startResponse(@Param('id') id: string, @Req() req) {
+    return this.inquiriesService.markInProgress(+id, req.user);
+  }
 }

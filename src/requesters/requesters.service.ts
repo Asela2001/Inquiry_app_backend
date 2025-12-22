@@ -148,4 +148,13 @@ export class RequestersService {
     }
     await this.requesterRepo.remove(requester);
   }
+
+  // Get all inquiries for a specific requester
+  async getInquiriesByRequester(requesterId: number): Promise<Inquiry[]> {
+    return this.inquiryRepo.find({
+      where: { requester: { requesterId } },
+      relations: ['category', 'responses', 'responses.user'],
+      order: { iCreatedAt: 'DESC' },
+    });
+  }
 }

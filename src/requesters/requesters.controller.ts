@@ -56,4 +56,11 @@ export class RequestersController {
   remove(@Param('id') id: string, @Req() req) {
     return this.requestersService.remove(+id, req.user);
   }
+
+  // Get all inquiries for a specific requester
+  @Get(':id/inquiries')
+  async getInquiries(@Param('id') id: number, @Req() req) {
+    const requester = await this.requestersService.findOne(id, req.user);
+    return this.requestersService.getInquiriesByRequester(id);
+  }
 }
