@@ -3,7 +3,7 @@ import { IsOptional } from 'class-validator';
 import { CreateUserDto } from './create-user.dto';
 import { PartialType } from '@nestjs/mapped-types';
 
-@Exclude()
+// @Exclude()
 export class UpdateUserDto extends PartialType(CreateUserDto) {
   @IsOptional()
   password?: never; // Block—use separate reset endpoint

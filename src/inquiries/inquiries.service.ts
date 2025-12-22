@@ -410,7 +410,7 @@ export class InquiriesService {
     // Reuse ownership logic (own or public)
     const inquiry = await this.inquiryRepo.findOne({
       where: { inquiryId: id }, // Add OR for officer if public
-      relations: ['responses', 'responses.user'],
+      relations: ['responses', 'responses.user', 'responses.attachments'],
     });
     if (!inquiry) throw new ForbiddenException('Inquiry not found');
     return inquiry.responses;
